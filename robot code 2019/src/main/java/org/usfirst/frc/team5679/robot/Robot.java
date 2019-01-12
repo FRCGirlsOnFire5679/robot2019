@@ -2,12 +2,12 @@ package org.usfirst.frc.team5679.robot;
 import java.time.Duration;
 import java.time.Instant;
 
-import edu.wpi.first.wpilibj.CameraServer;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.IterativeRobot;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
@@ -28,7 +28,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * @author Robotics
  *
  */
-public class Robot extends IterativeRobot {
+public class Robot extends TimedRobot {
 	private static final int RIGHT_AXIS = 5;
 	private static final int LEFT_AXIS = 1;
 	private static final int B_BUTTON_ID = 2;
@@ -41,8 +41,6 @@ public class Robot extends IterativeRobot {
 	private static final int Y_BUTTON_ID = 4;
 	private static final double CLAW_OPEN_CLOSE_SPEED = 0.6;
 	private static final double SCISSOR_LIFT_SPEED = .7;
-	private static final double SCISSOR_LIFT_MAX = 1000;
-	private static final double SCISSOR_LIFT_OFFSET = 10;
 	private static final double CLAW_RAISE_LOWER_SPEED = 0.6;
 	private static final Duration AUTONOMOUS_CLAW_SECONDS = Duration.ofSeconds(2);
 	
@@ -137,9 +135,9 @@ public class Robot extends IterativeRobot {
 
 		rightEncoder.reset();
 		leftEncoder.reset();	
-		autoChooser.addDefault("left", 'L');
-		autoChooser.addObject("Center", 'C');
-		autoChooser.addObject("Right", 'R');
+		autoChooser.setDefaultOption("left", 'L');
+		autoChooser.setDefaultOption("Center", 'C');
+		autoChooser.setDefaultOption("Right", 'R');
 		SmartDashboard.putData("Direction Chooser", autoChooser);
 	}	
 
