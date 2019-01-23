@@ -7,15 +7,15 @@ import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.Talon;
-import edu.wpi.first.wpilibj.Victor;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 /**
  * The VM is configured to automatically run this class, and to call the
  * functions corresponding to each mode, as described in the IterativeRobot
@@ -44,14 +44,14 @@ public class Robot extends TimedRobot {
 	private static final double CLAW_RAISE_LOWER_SPEED = 0.6;
 	private static final Duration AUTONOMOUS_CLAW_SECONDS = Duration.ofSeconds(2);
 	
+	//TODO: make sure we have a definite number of talons and their ports (0, 1, 2, ...).
 	Talon leftMotor0 = new Talon(0);
 	Talon leftMotor1 = new Talon(1);
 	Talon rightMotor0 = new Talon(2);
 	Talon rightMotor1 = new Talon(3);
-	Talon leftScissorLiftActuator = new Talon(4);
-	Talon rightScissorLiftActuator = new Talon(5);
-	Victor tiltClawActuator = new Victor(6);
-	Talon clawActuator = new Talon(7);
+	Talon leftIntakeTalon = new Talon(4);
+	Talon rightIntakeTalon = new Talon(5);
+	Talon hatchActuator = new Talon(6);
 	
 	//DigitalInput limitSwitchLiftTop = new DigitalInput(6);
 	DigitalInput limitSwitchClawLower = new DigitalInput(7);
@@ -64,7 +64,7 @@ public class Robot extends TimedRobot {
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor0, rightMotor1);
 	DifferentialDrive drive = new DifferentialDrive(m_left, m_right);
 	
-	SpeedControllerGroup scissorLift = new SpeedControllerGroup(leftScissorLiftActuator, rightScissorLiftActuator);
+	SpeedControllerGroup scissorLift = new SpeedControllerGroup(leftIntakeTalon, rightIntakeTalon);
 
 	Encoder rightEncoder = new Encoder(2, 3, false, EncodingType.k4X);
 	Encoder leftEncoder = new Encoder(0, 1, false, EncodingType.k4X);
@@ -124,9 +124,7 @@ public class Robot extends TimedRobot {
 		leftMotor1.setExpiration(motorExpiration);
 		rightMotor0.setExpiration(motorExpiration);
 		rightMotor1.setExpiration(motorExpiration);
-		leftScissorLiftActuator.setExpiration(motorExpiration);
-		tiltClawActuator.setExpiration(motorExpiration);
-		clawActuator.setExpiration(motorExpiration);
+		leftIntakeTalon.setExpiration(motorExpiration);
 
 		rightEncoder.setDistancePerPulse(distancePerPulse);
 		leftEncoder.setDistancePerPulse(distancePerPulse);
@@ -184,16 +182,7 @@ public class Robot extends TimedRobot {
             if (homeSwitchDirection == autoChooser.getSelected()) { 
         		Instant ends = Instant.now();
         		SmartDashboard.putNumber("Autonomous end timer", starts.getNano() / 1000);
-        		Duration clawDuration = Duration.between(starts, ends);        			
-        		if (clawDuration.compareTo(AUTONOMOUS_CLAW_SECONDS) <= 0) {
-            		lowerClaw(CLAW_RAISE_LOWER_SPEED);
-            	}
-            	else {
-            		tiltClawActuator.set(0);
-            		if (limitSwitchClawOpen.get()) {
-                		openClaw(CLAW_OPEN_CLOSE_SPEED);            			
-            		} 
-            	}       
+        		Duration clawDuration = Duration.between(starts, ends);        			       
             }
 		}
 		else {
@@ -233,14 +222,11 @@ public class Robot extends TimedRobot {
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
 
 		if (clawJoystick.getRawButton(LEFT_BUMPER_ID)) {
-			lowerClaw(CLAW_RAISE_LOWER_SPEED);
 			SmartDashboard.putString("Right Trigger", "Pressed");
 		} else if (clawJoystick.getRawButton(RIGHT_BUMPER_ID)) {
-			raiseClaw(CLAW_RAISE_LOWER_SPEED);
 			SmartDashboard.putString("Right Bumper", "Pressed");
 		} else {
 			SmartDashboard.putString("Right Trigger", "Not Pressed");
-			tiltClawActuator.set(0);
 		}
 		
 		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
@@ -265,14 +251,11 @@ public class Robot extends TimedRobot {
 		if (clawJoystick.getRawButton(A_BUTTON_ID) && limitSwitchClawOpen.get()) {
 			SmartDashboard.putString("A BUTTON", "Pressed");
 			SmartDashboard.putNumber("Open Speed", CLAW_OPEN_CLOSE_SPEED);
-			openClaw(CLAW_OPEN_CLOSE_SPEED);
 		} 		
 		else if (clawJoystick.getRawButton(B_BUTTON_ID) && limitSwitchClawClose.get()) {
 			SmartDashboard.putString("B BUTTON", "Pressed");
-			closeClaw(CLAW_OPEN_CLOSE_SPEED);
 		} else {
 			SmartDashboard.putString("B BUTTON", "Not Pressed");
-			clawActuator.set(0);
 			SmartDashboard.putString("A BUTTON", "Not Pressed");
 			SmartDashboard.putNumber("Open Speed", 0);
 		}
@@ -318,21 +301,5 @@ public class Robot extends TimedRobot {
 
 	public void moveScissorLift(double speed) {
 		scissorLift.set(speed);
-	}
-
-	public void openClaw(double speed) {
-		clawActuator.set(speed);
-	}
-
-	public void closeClaw(double speed) {
-		clawActuator.set(speed * -1);
-	}
-
-	public void raiseClaw(double speed) {
-		tiltClawActuator.set(speed);
-	}
-
-	public void lowerClaw(double speed) {
-		tiltClawActuator.set(speed * -1);
 	}
 }
