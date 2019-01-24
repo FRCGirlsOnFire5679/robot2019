@@ -39,10 +39,6 @@ public class Robot extends TimedRobot {
 	private static final int RIGHT_TRIGGER_ID = 3;
 	private static final int X_BUTTON_ID = 3;
 	private static final int Y_BUTTON_ID = 4;
-	private static final double CLAW_OPEN_CLOSE_SPEED = 0.6;
-	private static final double SCISSOR_LIFT_SPEED = .7;
-	private static final double CLAW_RAISE_LOWER_SPEED = 0.6;
-	private static final Duration AUTONOMOUS_CLAW_SECONDS = Duration.ofSeconds(2);
 	
 	//TODO: make sure we have a definite number of talons and their ports (0, 1, 2, ...).
 	Talon leftMotor0 = new Talon(0);
@@ -179,10 +175,8 @@ public class Robot extends TimedRobot {
 			SmartDashboard.putString("Autonomous", "Stop");
             drive.tankDrive(retrogradeSpeed, retrogradeSpeed);
             drive.tankDrive(0, 0);
-            if (homeSwitchDirection == autoChooser.getSelected()) { 
-        		Instant ends = Instant.now();
-        		SmartDashboard.putNumber("Autonomous end timer", starts.getNano() / 1000);
-        		Duration clawDuration = Duration.between(starts, ends);        			       
+            if (homeSwitchDirection == autoChooser.getSelected()) {
+        		SmartDashboard.putNumber("Autonomous end timer", starts.getNano() / 1000);		       
             }
 		}
 		else {
@@ -231,26 +225,18 @@ public class Robot extends TimedRobot {
 		
 		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 			SmartDashboard.putString("Left Trigger", "Pressed");
-			// Send negative scissor lift speed to lower scissor lift
-			if (limitSwitchClawLower.get()) {
-				moveScissorLift(SCISSOR_LIFT_SPEED * -1);
-			}
 		} else {
 			SmartDashboard.putString("Left Trigger", "Not Pressed");
 		}
 		
 		if (driveJoystick.getRawButton(LEFT_BUMPER_ID)) {
 			SmartDashboard.putString("Left Bumper", "Pressed");
-			//if (limitSwitchLiftTop.get()) {
-				moveScissorLift(SCISSOR_LIFT_SPEED * 1);
-			//}
 		} else {	
 			SmartDashboard.putString("Left Bumper", "Not Pressed");
 		}
 
 		if (clawJoystick.getRawButton(A_BUTTON_ID) && limitSwitchClawOpen.get()) {
 			SmartDashboard.putString("A BUTTON", "Pressed");
-			SmartDashboard.putNumber("Open Speed", CLAW_OPEN_CLOSE_SPEED);
 		} 		
 		else if (clawJoystick.getRawButton(B_BUTTON_ID) && limitSwitchClawClose.get()) {
 			SmartDashboard.putString("B BUTTON", "Pressed");
