@@ -55,7 +55,6 @@ public class Robot extends TimedRobot {
 	DigitalInput limitSwitchClawClose = new DigitalInput(6);
 	
 	Joystick driveJoystick = new Joystick(0);
-	Joystick clawJoystick = new Joystick(1);
 	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor0, leftMotor1);
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor0, rightMotor1);
 	DifferentialDrive drive = new DifferentialDrive(m_left, m_right);
@@ -214,14 +213,6 @@ public class Robot extends TimedRobot {
 		leftEncoder.reset();
 		double LP = driveJoystick.getRawAxis(LEFT_AXIS);
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
-
-		if (clawJoystick.getRawButton(LEFT_BUMPER_ID)) {
-			SmartDashboard.putString("Right Trigger", "Pressed");
-		} else if (clawJoystick.getRawButton(RIGHT_BUMPER_ID)) {
-			SmartDashboard.putString("Right Bumper", "Pressed");
-		} else {
-			SmartDashboard.putString("Right Trigger", "Not Pressed");
-		}
 		
 		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 			SmartDashboard.putString("Left Trigger", "Pressed");
@@ -230,21 +221,25 @@ public class Robot extends TimedRobot {
 		}
 		
 		if (driveJoystick.getRawButton(LEFT_BUMPER_ID)) {
+			moveIntake(1);
 			SmartDashboard.putString("Left Bumper", "Pressed");
-		} else {	
-			SmartDashboard.putString("Left Bumper", "Not Pressed");
+		} else if (driveJoystick.getRawButton(RIGHT_BUMPER_ID)) {
+			moveIntake(-1);	
+			SmartDashboard.putString("Right Bumper", "Pressed");
+		} else {
+			moveIntake(0);
 		}
 
-		if (clawJoystick.getRawButton(A_BUTTON_ID) && limitSwitchClawOpen.get()) {
-			SmartDashboard.putString("A BUTTON", "Pressed");
-		} 		
-		else if (clawJoystick.getRawButton(B_BUTTON_ID) && limitSwitchClawClose.get()) {
-			SmartDashboard.putString("B BUTTON", "Pressed");
-		} else {
-			SmartDashboard.putString("B BUTTON", "Not Pressed");
-			SmartDashboard.putString("A BUTTON", "Not Pressed");
-			SmartDashboard.putNumber("Open Speed", 0);
+		if (driveJoystick.getRawButton(A_BUTTON_ID)) {
+			moveHatchActuator(1);
 		}
+		else if (driveJoystick.getRawButton(B_BUTTON_ID)){
+			moveHatchActuator(-1);
+		}
+		else {
+			moveHatchActuator(0);
+		}
+
 		
 		if (Math.abs(RP) < minimumSpeed) {
 			RP = 0;
@@ -285,7 +280,14 @@ public class Robot extends TimedRobot {
 		drive.tankDrive(leftSpeed * speedFactor, rightSpeed * speedFactor);
 	}
 
-	public void moveScissorLift(double speed) {
-		scissorLift.set(speed);
+	public void moveHatchActuator (double speed) {
+		hatchActuator.set(speed);
 	}
+
+	public void moveIntake (double speed){
+		leftIntakeTalon.set(speed);
+		rightIntakeTalon.set(-speed);
+	}
+
+	
 }
