@@ -5,9 +5,11 @@ import java.time.Instant;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.Talon;
@@ -41,22 +43,16 @@ public class Robot extends TimedRobot {
 	private static final int Y_BUTTON_ID = 4;
 	
 	//TODO: make sure we have a definite number of talons and their ports (0, 1, 2, ...).
-	Talon leftMotor0 = new Talon(0);
-	Talon leftMotor1 = new Talon(1);
-	Talon rightMotor0 = new Talon(2);
-	Talon rightMotor1 = new Talon(3);
+	Talon leftMotor = new Talon(0);
+	Talon rightMotor = new Talon(1);
 	Talon leftIntakeTalon = new Talon(4);
 	Talon rightIntakeTalon = new Talon(5);
 	Talon hatchActuator = new Talon(6);
-	
-	//DigitalInput limitSwitchLiftTop = new DigitalInput(6);
-	DigitalInput limitSwitchClawLower = new DigitalInput(7);
-	DigitalInput limitSwitchClawOpen = new DigitalInput(4);
-	DigitalInput limitSwitchClawClose = new DigitalInput(6);
+	DoubleSolenoid ballReturn = new DoubleSolenoid(7, 8);
 	
 	Joystick driveJoystick = new Joystick(0);
-	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor0, leftMotor1);
-	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor0, rightMotor1);
+	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor);
+	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor);
 	DifferentialDrive drive = new DifferentialDrive(m_left, m_right);
 	
 	SpeedControllerGroup scissorLift = new SpeedControllerGroup(leftIntakeTalon, rightIntakeTalon);
@@ -67,7 +63,6 @@ public class Robot extends TimedRobot {
 	
 	CameraServer camera;
 	int session;	
-	String gameData;
 	Instant starts;
 	
 	static final double wheelCircumference = 1.43;
@@ -102,23 +97,9 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putString("Autonomous", "Robot Init");
 		CameraServer.getInstance().startAutomaticCapture();
 		starts = Instant.now();
-		gameData = DriverStation.getInstance().getGameSpecificMessage().trim();
 		
-		if (!gameData.isEmpty()) {
-			homeSwitchDirection = gameData.charAt(0);
-			middleScaleDirection = gameData.charAt(1);
-			opponentSwitchDirection = gameData.charAt(2);
-		}
-		
-		SmartDashboard.putString("gameData", gameData);
-		SmartDashboard.putString("homeSwitchDirection", homeSwitchDirection + "");
-		SmartDashboard.putString("middleScaleDirection", middleScaleDirection + "");
-		SmartDashboard.putString("opponentSwitchDirection", opponentSwitchDirection + "");
-		
-		leftMotor0.setExpiration(motorExpiration);
-		leftMotor1.setExpiration(motorExpiration);
-		rightMotor0.setExpiration(motorExpiration);
-		rightMotor1.setExpiration(motorExpiration);
+		leftMotor.setExpiration(motorExpiration);
+		rightMotor.setExpiration(motorExpiration);
 		leftIntakeTalon.setExpiration(motorExpiration);
 
 		rightEncoder.setDistancePerPulse(distancePerPulse);
@@ -128,10 +109,6 @@ public class Robot extends TimedRobot {
 
 		rightEncoder.reset();
 		leftEncoder.reset();	
-		autoChooser.setDefaultOption("left", 'L');
-		autoChooser.setDefaultOption("Center", 'C');
-		autoChooser.setDefaultOption("Right", 'R');
-		SmartDashboard.putData("Direction Chooser", autoChooser);
 	}	
 
 	/**
@@ -139,16 +116,8 @@ public class Robot extends TimedRobot {
 	 */
 	public void autonomousinit() {
 		SmartDashboard.putString("Autonomous", "Init");
-		gameData = DriverStation.getInstance().getGameSpecificMessage().trim();
 		starts = null; 
-		if (!gameData.isEmpty()) {
-			homeSwitchDirection = gameData.charAt(0);
-			middleScaleDirection = gameData.charAt(1);
-			opponentSwitchDirection = gameData.charAt(2);
-		}
-		
-		SmartDashboard.putString("gameData", gameData);
-		
+				
 		rightEncoder.reset();
 		leftEncoder.reset();
 	}
@@ -188,31 +157,20 @@ public class Robot extends TimedRobot {
 		
 	}
 	
-	public void disabledPeriodic() {
-		gameData = DriverStation.getInstance().getGameSpecificMessage().trim();
-		
-		if (!gameData.isEmpty()) {
-			homeSwitchDirection = gameData.charAt(0);
-			middleScaleDirection = gameData.charAt(1);
-			opponentSwitchDirection = gameData.charAt(2);
-		}
-		
-		SmartDashboard.putString("gameData", gameData);
-	}
-	
+	public void disabledPeriodic() {}	
 	/**
 	 * This function is called periodically during operator control
 	 */
 	@Override
 	public void teleopPeriodic() {
 		SmartDashboard.putString("Autonomous", "Teleop");
-		SmartDashboard.putBoolean("limit lift bottom", limitSwitchClawLower.get());
-		SmartDashboard.putBoolean("limit lift claw open", limitSwitchClawOpen.get());
-		SmartDashboard.putBoolean("limit lift claw close", limitSwitchClawClose.get());
 		rightEncoder.reset();
 		leftEncoder.reset();
 		double LP = driveJoystick.getRawAxis(LEFT_AXIS);
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
+		SmartDashboard.putNumber("Left joystick", LP);
+		SmartDashboard.putNumber("Right joystick", RP);
+
 		
 		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 			SmartDashboard.putString("Left Trigger", "Pressed");
