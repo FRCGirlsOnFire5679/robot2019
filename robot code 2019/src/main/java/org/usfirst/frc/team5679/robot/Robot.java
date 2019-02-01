@@ -4,12 +4,12 @@ import java.time.Instant;
 
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.DoubleSolenoid;
-import edu.wpi.first.wpilibj.DriverStation;
+//import edu.wpi.first.wpilibj.DigitalInput;
+//import edu.wpi.first.wpilibj.DoubleSolenoid;
+//import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.Solenoid;
+//import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.Talon;
@@ -48,7 +48,7 @@ public class Robot extends TimedRobot {
 	Talon leftIntakeTalon = new Talon(4);
 	Talon rightIntakeTalon = new Talon(5);
 	Talon hatchActuator = new Talon(6);
-	DoubleSolenoid ballReturn = new DoubleSolenoid(7, 8);
+	//DoubleSolenoid ballReturn = new DoubleSolenoid(7, 8);
 	
 	Joystick driveJoystick = new Joystick(0);
 	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor);
@@ -95,7 +95,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void robotInit() {
 		SmartDashboard.putString("Autonomous", "Robot Init");
-		CameraServer.getInstance().startAutomaticCapture();
+		//CameraServer.getInstance().startAutomaticCapture();
 		starts = Instant.now();
 		
 		leftMotor.setExpiration(motorExpiration);
@@ -207,7 +207,7 @@ public class Robot extends TimedRobot {
 			}
 		}
 
-		setRobotDriveSpeed(-RP * speedAdjust, -LP * speedAdjust);
+		setRobotDriveSpeed(LP * speedAdjust, RP * speedAdjust);
 
 	}
 
