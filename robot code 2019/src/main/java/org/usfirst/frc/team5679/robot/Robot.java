@@ -45,8 +45,7 @@ public class Robot extends TimedRobot {
 	//TODO: make sure we have a definite number of talons and their ports (0, 1, 2, ...).
 	Talon leftMotor = new Talon(0);
 	Talon rightMotor = new Talon(1);
-	Talon leftIntakeTalon = new Talon(4);
-	Talon rightIntakeTalon = new Talon(5);
+	Talon intakeTalon = new Talon(4);
 	Talon hatchActuator = new Talon(6);
 	//DoubleSolenoid ballReturn = new DoubleSolenoid(7, 8);
 	
@@ -55,7 +54,7 @@ public class Robot extends TimedRobot {
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor);
 	DifferentialDrive drive = new DifferentialDrive(m_left, m_right);
 	
-	SpeedControllerGroup scissorLift = new SpeedControllerGroup(leftIntakeTalon, rightIntakeTalon);
+	SpeedControllerGroup scissorLift = new SpeedControllerGroup(intakeTalon);
 
 	Encoder rightEncoder = new Encoder(2, 3, false, EncodingType.k4X);
 	Encoder leftEncoder = new Encoder(0, 1, false, EncodingType.k4X);
@@ -100,7 +99,7 @@ public class Robot extends TimedRobot {
 		
 		leftMotor.setExpiration(motorExpiration);
 		rightMotor.setExpiration(motorExpiration);
-		leftIntakeTalon.setExpiration(motorExpiration);
+		intakeTalon.setExpiration(motorExpiration);
 
 		rightEncoder.setDistancePerPulse(distancePerPulse);
 		leftEncoder.setDistancePerPulse(distancePerPulse);
@@ -182,7 +181,7 @@ public class Robot extends TimedRobot {
 			moveIntake(1);
 			SmartDashboard.putString("Left Bumper", "Pressed");
 		} else if (driveJoystick.getRawButton(RIGHT_BUMPER_ID)) {
-			moveIntake(-1);	
+			moveIntake(-.85);	
 			SmartDashboard.putString("Right Bumper", "Pressed");
 		} else {
 			moveIntake(0);
@@ -243,8 +242,7 @@ public class Robot extends TimedRobot {
 	}
 
 	public void moveIntake (double speed){
-		leftIntakeTalon.set(speed);
-		rightIntakeTalon.set(-speed);
+		intakeTalon.set(speed);
 	}
 
 	
