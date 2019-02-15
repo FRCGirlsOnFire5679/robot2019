@@ -49,7 +49,9 @@ public class Robot extends TimedRobot {
 	Talon hatchActuator = new Talon(6);
 	//DoubleSolenoid ballReturn = new DoubleSolenoid(7, 8);
 	
+	//TODO: add digital inputs for limit switches
 	Joystick driveJoystick = new Joystick(0);
+	Joystick functionJoystick = new Joystick(1);
 	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor);
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor);
 	DifferentialDrive drive = new DifferentialDrive(m_left, m_right);
@@ -73,19 +75,25 @@ public class Robot extends TimedRobot {
 
 	static final double halfSpeed = .5;
 	static final double minJoystickValue = 0.2;
-	static final double minimumSpeed = 0.1;
-	static final int fullSpeed = 1;
+	static final double minimumSpeed = 0.3;
+	static final double slowCargoSpeed = 0.4;
+	static final double fullCargoSpeed = 1;
+	static final double fullSpeed = 1;
 	static final double motorExpiration = .2;
 	static final double autonomousSpeed = .6;
 	static final double autonomousDistance = 5;
 	static final double autonomousMultiplier = .95;
 	static final double retrogradeSpeed = -.2;
-	double speedAdjust = .8;
+	double speedAdjust = .7;
+	double slowSpeedAdjust = .4;
+	double reverseDirection = -1;
 
 	// Defining which panels are exactly where on the field.
 	char homeSwitchDirection;
 	char opponentSwitchDirection;
 	char middleScaleDirection;
+	private double slowDriveSpeed = .3;
+	private double fullDriveSpeed = 1;
 
 	/**
 	 * This function is run when the robot is first started up and should be used
@@ -122,8 +130,10 @@ public class Robot extends TimedRobot {
 	}
 
 	public void debug() {
-		SmartDashboard.putNumber("Joystick x", driveJoystick.getX());
-		SmartDashboard.putNumber("Joystick y", driveJoystick.getY());
+		SmartDashboard.putNumber("Drive Joystick x", driveJoystick.getX());
+		SmartDashboard.putNumber("Drive Joystick y", driveJoystick.getY());
+		SmartDashboard.putNumber("FunctionJoystick x", functionJoystick.getX());
+		SmartDashboard.putNumber("Function Joystick y", functionJoystick.getY());
 		SmartDashboard.putNumber("Right Encoder", rightEncoder.getDistance());
 		SmartDashboard.putNumber("Left Encoder", leftEncoder.getDistance());
 		SmartDashboard.putBoolean("Autonomous Right Distance Triggered", rightEncoder.getDistance() >= autonomousDistance);
@@ -169,28 +179,48 @@ public class Robot extends TimedRobot {
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
 		SmartDashboard.putNumber("Left joystick", LP);
 		SmartDashboard.putNumber("Right joystick", RP);
+		double speedScale = speedAdjust;
 
 		
 		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
+			speedScale = slowDriveSpeed;
 			SmartDashboard.putString("Left Trigger", "Pressed");
+		}
+		else if (driveJoystick.getRawAxis(RIGHT_TRIGGER_ID) > 0) {
+			speedScale = fullDriveSpeed;
+			SmartDashboard.putString("Right Trigger", "Pressed");
 		} else {
+			speedScale = speedAdjust;
 			SmartDashboard.putString("Left Trigger", "Not Pressed");
 		}
 		
-		if (driveJoystick.getRawButton(LEFT_BUMPER_ID)) {
-			moveIntake(1);
-			SmartDashboard.putString("Left Bumper", "Pressed");
-		} else if (driveJoystick.getRawButton(RIGHT_BUMPER_ID)) {
-			moveIntake(-.85);	
+		if (functionJoystick.getRawButton(RIGHT_BUMPER_ID)) {
+			if (functionJoystick.getRawButton(A_BUTTON_ID)) {
+				moveIntake(slowCargoSpeed * reverseDirection); 
+			}
+			else if (functionJoystick.getRawButton(X_BUTTON_ID)) {
+				moveIntake(fullCargoSpeed * reverseDirection); 
+			} else {
+				moveIntake(minimumSpeed * reverseDirection);
+			}	
 			SmartDashboard.putString("Right Bumper", "Pressed");
+		} else if (functionJoystick.getRawAxis(RIGHT_TRIGGER_ID) > 0 )  {
+			if (functionJoystick.getRawButton(X_BUTTON_ID)) {
+				moveIntake(slowCargoSpeed); 
+			} else {
+				moveIntake(minimumSpeed);
+			}	
+			SmartDashboard.putString("Right Trigger", "Pressed");
 		} else {
 			moveIntake(0);
 		}
 
-		if (driveJoystick.getRawButton(A_BUTTON_ID)) {
+		double hatchAngle = functionJoystick.getRawAxis(LEFT_AXIS);
+		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
+
 			moveHatchActuator(1);
 		}
-		else if (driveJoystick.getRawButton(B_BUTTON_ID)){
+		else if (functionJoystick.getRawButton(B_BUTTON_ID)){
 			moveHatchActuator(-1);
 		}
 		else {
@@ -206,7 +236,7 @@ public class Robot extends TimedRobot {
 			}
 		}
 
-		setRobotDriveSpeed(LP * speedAdjust, RP * speedAdjust);
+		setRobotDriveSpeed(LP * speedScale, RP * speedScale);
 
 	}
 
@@ -238,6 +268,7 @@ public class Robot extends TimedRobot {
 	}
 
 	public void moveHatchActuator (double speed) {
+	//TODO: get encoder ticks per revolution from markus and set speed to 0 after one revolution	
 		hatchActuator.set(speed);
 	}
 
