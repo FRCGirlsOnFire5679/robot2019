@@ -3,6 +3,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 //import edu.wpi.first.wpilibj.DigitalInput;
 //import edu.wpi.first.wpilibj.DoubleSolenoid;
@@ -88,12 +89,13 @@ public class Robot extends TimedRobot {
 	double slowSpeedAdjust = .4;
 	double reverseDirection = -1;
 
-	// Defining which panels are exactly where on the field.
-	char homeSwitchDirection;
-	char opponentSwitchDirection;
-	char middleScaleDirection;
 	private double slowDriveSpeed = .3;
 	private double fullDriveSpeed = 1;
+
+	static final String[] piAddresses = new String[]{
+		"mjpeg:http://frcvision.local:1181/stream.mjpg",
+		"mjpeg:http://frcvision.local:1182/stream.mjpg"
+	};
 
 	/**
 	 * This function is run when the robot is first started up and should be used
@@ -101,8 +103,6 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void robotInit() {
-		SmartDashboard.putString("Autonomous", "Robot Init");
-		//CameraServer.getInstance().startAutomaticCapture();
 		starts = Instant.now();
 		
 		leftMotor.setExpiration(motorExpiration);
@@ -115,19 +115,9 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putString("robot init", "robot init");
 
 		rightEncoder.reset();
-		leftEncoder.reset();	
-	}	
-
-	/**
-	 * This function sets up any necessary data before the autonomous control loop.
-	 */
-	public void autonomousinit() {
-		SmartDashboard.putString("Autonomous", "Init");
-		starts = null; 
-				
-		rightEncoder.reset();
 		leftEncoder.reset();
-	}
+		
+	}	
 
 	public void debug() {
 		SmartDashboard.putNumber("Drive Joystick x", driveJoystick.getX());
@@ -139,32 +129,6 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putBoolean("Autonomous Right Distance Triggered", rightEncoder.getDistance() >= autonomousDistance);
 		SmartDashboard.putBoolean("Autonomous Left Distance Triggered", leftEncoder.getDistance() >= autonomousDistance);
 	}
-
-	/**
-	 * This function is called periodically during autonomous control
-	 */
-	@Override
-	public void autonomousPeriodic() {
-		debug();
-		
-		if (Math.abs(rightEncoder.getDistance()) >= autonomousDistance || 
-			Math.abs(leftEncoder.getDistance()) >= autonomousDistance) {
-			SmartDashboard.putString("Autonomous", "Stop");
-            drive.tankDrive(retrogradeSpeed, retrogradeSpeed);
-            drive.tankDrive(0, 0);
-            if (homeSwitchDirection == autoChooser.getSelected()) {
-        		SmartDashboard.putNumber("Autonomous end timer", starts.getNano() / 1000);		       
-            }
-		}
-		else {
-			setRobotDriveSpeed(autonomousSpeed, autonomousSpeed * autonomousMultiplier);
-			SmartDashboard.putString("Autonomous", "Go");
-			starts = Instant.now();
-		}
-		
-		SmartDashboard.putNumber("Autonomous start timer", starts.getNano() / 1000);
-		
-	}
 	
 	public void disabledPeriodic() {}	
 	/**
@@ -172,6 +136,22 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
+		var instance = NetworkTableInstance.getDefault();
+		var vision = instance.getTable("ChickenVision");
+		var tapeDetected = vision.getEntry("tapeDetected");
+		var cargoDetected = vision.getEntry("cargoDetected");
+		var tapeYaw = vision.getEntry("tapeYaw");
+		var cargoYaw = vision.getEntry("cargoYaw");
+		var videoTimestamp = vision.getEntry("VideoTimestamp");
+		var tapeWanted = vision.getEntry("Tape");
+		var cargoWanted = vision.getEntry("Cargo");
+		
+		SmartDashboard.putBoolean("Cargo Detected", cargoDetected.getBoolean(false));
+		SmartDashboard.putBoolean("Tape Detected", tapeDetected.getBoolean(false));
+		SmartDashboard.putNumber("tapeYaw", tapeYaw.getDouble(0));
+		SmartDashboard.putNumber("cargoYaw", cargoYaw.getDouble(0));
+		SmartDashboard.putNumber("videoTimestamp", videoTimestamp.getDouble(0));
+
 		SmartDashboard.putString("Autonomous", "Teleop");
 		rightEncoder.reset();
 		leftEncoder.reset();
@@ -192,6 +172,21 @@ public class Robot extends TimedRobot {
 		} else {
 			speedScale = speedAdjust;
 			SmartDashboard.putString("Left Trigger", "Not Pressed");
+		}
+		//todo: button stuff not working or however you wanna word it
+		if (driveJoystick.getRawButton(A_BUTTON_ID)) { 
+			if (tapeWanted.getBoolean(false)==false){
+				tapeWanted.setBoolean(true);
+			}
+			if (tapeWanted.getBoolean(false)==true){
+				tapeWanted.setBoolean(false);
+			}
+			if (cargoWanted.getBoolean(false)==false){
+				cargoWanted.setBoolean(true);
+			}
+			if (cargoWanted.getBoolean(false)==true){
+				cargoWanted.setBoolean(false);
+			}
 		}
 		
 		if (functionJoystick.getRawButton(RIGHT_BUMPER_ID)) {
@@ -237,6 +232,9 @@ public class Robot extends TimedRobot {
 		}
 
 		setRobotDriveSpeed(LP * speedScale, RP * speedScale);
+
+		
+
 
 	}
 
