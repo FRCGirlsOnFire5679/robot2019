@@ -59,8 +59,8 @@ public class Robot extends TimedRobot {
 	
 	SpeedControllerGroup scissorLift = new SpeedControllerGroup(intakeTalon);
 
-	Encoder rightEncoder = new Encoder(2, 3, false, EncodingType.k4X);
-	Encoder leftEncoder = new Encoder(0, 1, false, EncodingType.k4X);
+	Encoder hatchEncoder = new Encoder(2, 3, false, EncodingType.k4X);
+	Encoder shooterEncoder = new Encoder(0, 1, false, EncodingType.k4X);
 	SendableChooser<Character> autoChooser = new SendableChooser<Character>();
 	
 	CameraServer camera;
@@ -68,8 +68,9 @@ public class Robot extends TimedRobot {
 	Instant starts;
 	
 	static final double wheelCircumference = 1.43;
-	static final double encoderPulses = 250;
-	static final double distancePerPulse = wheelCircumference / encoderPulses;
+	static final double hatchEncoderPulses = 280;
+	static final double shooterEncoderPulses = 497;
+	static final double shooterAngle = shooterEncoderPulses / 0.125;
 	static final double clawDistancePerPulse = 360 / 7*71;
 	static final double speedFactor = -1;
 	static final double driveOffset = .98;
@@ -109,13 +110,11 @@ public class Robot extends TimedRobot {
 		rightMotor.setExpiration(motorExpiration);
 		intakeTalon.setExpiration(motorExpiration);
 
-		rightEncoder.setDistancePerPulse(distancePerPulse);
-		leftEncoder.setDistancePerPulse(distancePerPulse);
 
 		SmartDashboard.putString("robot init", "robot init");
 
-		rightEncoder.reset();
-		leftEncoder.reset();
+		hatchEncoder.reset();
+		shooterEncoder.reset();
 		
 	}	
 
@@ -124,10 +123,10 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("Drive Joystick y", driveJoystick.getY());
 		SmartDashboard.putNumber("FunctionJoystick x", functionJoystick.getX());
 		SmartDashboard.putNumber("Function Joystick y", functionJoystick.getY());
-		SmartDashboard.putNumber("Right Encoder", rightEncoder.getDistance());
-		SmartDashboard.putNumber("Left Encoder", leftEncoder.getDistance());
-		SmartDashboard.putBoolean("Autonomous Right Distance Triggered", rightEncoder.getDistance() >= autonomousDistance);
-		SmartDashboard.putBoolean("Autonomous Left Distance Triggered", leftEncoder.getDistance() >= autonomousDistance);
+		SmartDashboard.putNumber("Right Encoder", hatchEncoder.getDistance());
+		SmartDashboard.putNumber("Left Encoder", shooterEncoder.getDistance());
+		SmartDashboard.putBoolean("Autonomous Right Distance Triggered", hatchEncoder.getDistance() >= autonomousDistance);
+		SmartDashboard.putBoolean("Autonomous Left Distance Triggered", shooterEncoder.getDistance() >= autonomousDistance);
 	}
 	
 	public void disabledPeriodic() {}	
@@ -145,6 +144,9 @@ public class Robot extends TimedRobot {
 		var videoTimestamp = vision.getEntry("VideoTimestamp");
 		var tapeWanted = vision.getEntry("Tape");
 		var cargoWanted = vision.getEntry("Cargo");
+
+		tapeWanted.setBoolean(false);
+		cargoWanted.setBoolean(true);
 		
 		SmartDashboard.putBoolean("Cargo Detected", cargoDetected.getBoolean(false));
 		SmartDashboard.putBoolean("Tape Detected", tapeDetected.getBoolean(false));
@@ -153,8 +155,8 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("videoTimestamp", videoTimestamp.getDouble(0));
 
 		SmartDashboard.putString("Autonomous", "Teleop");
-		rightEncoder.reset();
-		leftEncoder.reset();
+		hatchEncoder.reset();
+		shooterEncoder.reset();
 		double LP = driveJoystick.getRawAxis(LEFT_AXIS);
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
 		SmartDashboard.putNumber("Left joystick", LP);
@@ -173,19 +175,15 @@ public class Robot extends TimedRobot {
 			speedScale = speedAdjust;
 			SmartDashboard.putString("Left Trigger", "Not Pressed");
 		}
-		//todo: button stuff not working or however you wanna word it
+		//TODO: button stuff not working or however you wanna word it
 		if (driveJoystick.getRawButton(A_BUTTON_ID)) { 
 			if (tapeWanted.getBoolean(false)==false){
 				tapeWanted.setBoolean(true);
-			}
-			if (tapeWanted.getBoolean(false)==true){
-				tapeWanted.setBoolean(false);
-			}
-			if (cargoWanted.getBoolean(false)==false){
-				cargoWanted.setBoolean(true);
-			}
-			if (cargoWanted.getBoolean(false)==true){
 				cargoWanted.setBoolean(false);
+			}
+			else {
+				tapeWanted.setBoolean(false);
+				cargoWanted.setBoolean(true);
 			}
 		}
 		
@@ -214,12 +212,6 @@ public class Robot extends TimedRobot {
 		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 
 			moveHatchActuator(1);
-		}
-		else if (functionJoystick.getRawButton(B_BUTTON_ID)){
-			moveHatchActuator(-1);
-		}
-		else {
-			moveHatchActuator(0);
 		}
 
 		
@@ -265,9 +257,11 @@ public class Robot extends TimedRobot {
 		drive.tankDrive(leftSpeed * speedFactor, rightSpeed * speedFactor);
 	}
 
-	public void moveHatchActuator (double speed) {
-	//TODO: get encoder ticks per revolution from markus and set speed to 0 after one revolution	
+	public void moveHatchActuator (double speed) {	
 		hatchActuator.set(speed);
+		while(hatchEncoder.get()<hatchEncoderPulses);
+		hatchActuator.set(0);
+		hatchEncoder.reset();
 	}
 
 	public void moveIntake (double speed){
