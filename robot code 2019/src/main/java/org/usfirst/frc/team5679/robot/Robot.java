@@ -164,11 +164,11 @@ public class Robot extends TimedRobot {
 		double speedScale = speedAdjust;
 
 		
-		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
+		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 			speedScale = slowDriveSpeed;
 			SmartDashboard.putString("Left Trigger", "Pressed");
 		}
-		else if (driveJoystick.getRawAxis(RIGHT_TRIGGER_ID) > 0) {
+		else if (functionJoystick.getRawAxis(RIGHT_TRIGGER_ID) > 0) {
 			speedScale = fullDriveSpeed;
 			SmartDashboard.putString("Right Trigger", "Pressed");
 		} else {
@@ -210,8 +210,13 @@ public class Robot extends TimedRobot {
 
 		double hatchAngle = functionJoystick.getRawAxis(LEFT_AXIS);
 		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
-
+			SmartDashboard.putNumber("hatch", 1);
 			moveHatchActuator(1);
+		
+		}
+		else {
+			moveHatchActuator(0);
+			SmartDashboard.putNumber("hatch", 0);
 		}
 
 		
@@ -259,9 +264,9 @@ public class Robot extends TimedRobot {
 
 	public void moveHatchActuator (double speed) {	
 		hatchActuator.set(speed);
-		while(hatchEncoder.get()<hatchEncoderPulses);
-		hatchActuator.set(0);
-		hatchEncoder.reset();
+		//while(hatchEncoder.get()<hatchEncoderPulses);
+		//hatchActuator.set(0);
+		//hatchEncoder.reset();
 	}
 
 	public void moveIntake (double speed){
