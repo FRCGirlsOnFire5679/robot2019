@@ -52,15 +52,15 @@ public class Robot extends TimedRobot {
 	
 	//TODO: add digital inputs for limit switches
 	Joystick driveJoystick = new Joystick(0);
-	Joystick functionJoystick = new Joystick(1);
+	Joystick functionJoystick = new Joystick(1);	
 	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor);
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor);
 	DifferentialDrive drive = new DifferentialDrive(m_left, m_right);
 	
 	SpeedControllerGroup scissorLift = new SpeedControllerGroup(intakeTalon);
 
-	Encoder hatchEncoder = new Encoder(2, 3, false, EncodingType.k4X);
-	Encoder shooterEncoder = new Encoder(0, 1, false, EncodingType.k4X);
+	Encoder hatchEncoder = new Encoder(0, 1, false, EncodingType.k4X);
+	Encoder shooterEncoder = new Encoder(2, 3, false, EncodingType.k4X);
 	SendableChooser<Character> autoChooser = new SendableChooser<Character>();
 	
 	CameraServer camera;
@@ -89,6 +89,7 @@ public class Robot extends TimedRobot {
 	double speedAdjust = .7;
 	double slowSpeedAdjust = .4;
 	double reverseDirection = -1;
+	boolean hatchRevolution = false;
 
 	private double slowDriveSpeed = .3;
 	private double fullDriveSpeed = 1;
@@ -110,12 +111,16 @@ public class Robot extends TimedRobot {
 		rightMotor.setExpiration(motorExpiration);
 		intakeTalon.setExpiration(motorExpiration);
 
-
 		SmartDashboard.putString("robot init", "robot init");
+		
+		//hatchEncoder.setDistancePerPulse(hatchEncoderPulses);
+		hatchEncoder.setMaxPeriod(.1);
+		hatchEncoder.setMinRate(10);
+		hatchEncoder.setReverseDirection(true);
+		hatchEncoder.setSamplesToAverage(7);
 
 		hatchEncoder.reset();
-		shooterEncoder.reset();
-		
+		shooterEncoder.reset();		
 	}	
 
 	public void debug() {
@@ -155,8 +160,8 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("videoTimestamp", videoTimestamp.getDouble(0));
 
 		SmartDashboard.putString("Autonomous", "Teleop");
-		hatchEncoder.reset();
-		shooterEncoder.reset();
+		//hatchEncoder.reset();
+		//shooterEncoder.reset();
 		double LP = driveJoystick.getRawAxis(LEFT_AXIS);
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
 		SmartDashboard.putNumber("Left joystick", LP);
@@ -209,16 +214,22 @@ public class Robot extends TimedRobot {
 		}
 
 		double hatchAngle = functionJoystick.getRawAxis(LEFT_AXIS);
+		
+		SmartDashboard.putNumber("hatch raw", hatchEncoder.getRaw());
+		SmartDashboard.putNumber("hatch pulses", hatchEncoder.get());
+		SmartDashboard.putNumber("hatch distance", hatchEncoder.getDistance());
+		SmartDashboard.putNumber("hatch rate", hatchEncoder.getRate());
+		SmartDashboard.putNumber("hatch position", hatchEncoder.get());
 		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 			SmartDashboard.putNumber("hatch", 1);
-			moveHatchActuator(1);
-		
+			if (!hatchRevolution)
+				moveHatchActuator(0.25);		
 		}
 		else {
 			moveHatchActuator(0);
+			hatchRevolution = false; 
 			SmartDashboard.putNumber("hatch", 0);
 		}
-
 		
 		if (Math.abs(RP) < minimumSpeed) {
 			RP = 0;
@@ -229,10 +240,6 @@ public class Robot extends TimedRobot {
 		}
 
 		setRobotDriveSpeed(LP * speedScale, RP * speedScale);
-
-		
-
-
 	}
 
 	/**
@@ -263,10 +270,14 @@ public class Robot extends TimedRobot {
 	}
 
 	public void moveHatchActuator (double speed) {	
-		hatchActuator.set(speed);
-		//while(hatchEncoder.get()<hatchEncoderPulses);
-		//hatchActuator.set(0);
-		//hatchEncoder.reset();
+		if (hatchEncoder.get()<=hatchEncoderPulses) {
+			hatchActuator.set(speed);
+		}
+		else {
+			hatchActuator.set(0);
+			hatchRevolution = true;
+			hatchEncoder.reset();
+		}
 	}
 
 	public void moveIntake (double speed){
