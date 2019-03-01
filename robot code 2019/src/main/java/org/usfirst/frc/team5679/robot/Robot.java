@@ -48,6 +48,7 @@ public class Robot extends TimedRobot {
 	Talon rightMotor = new Talon(1);
 	Talon intakeTalon = new Talon(4);
 	Talon hatchActuator = new Talon(6);
+	Talon shooterTalon = new Talon (7);
 	//DoubleSolenoid ballReturn = new DoubleSolenoid(7, 8);
 	
 	//TODO: add digital inputs for limit switches
@@ -169,11 +170,11 @@ public class Robot extends TimedRobot {
 		double speedScale = speedAdjust;
 
 		
-		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
+		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 			speedScale = slowDriveSpeed;
 			SmartDashboard.putString("Left Trigger", "Pressed");
 		}
-		else if (functionJoystick.getRawAxis(RIGHT_TRIGGER_ID) > 0) {
+		else if (driveJoystick.getRawAxis(RIGHT_TRIGGER_ID) > 0) {
 			speedScale = fullDriveSpeed;
 			SmartDashboard.putString("Right Trigger", "Pressed");
 		} else {
@@ -212,6 +213,7 @@ public class Robot extends TimedRobot {
 		} else {
 			moveIntake(0);
 		}
+		
 
 		double hatchAngle = functionJoystick.getRawAxis(LEFT_AXIS);
 		
@@ -220,7 +222,8 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("hatch distance", hatchEncoder.getDistance());
 		SmartDashboard.putNumber("hatch rate", hatchEncoder.getRate());
 		SmartDashboard.putNumber("hatch position", hatchEncoder.get());
-		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
+		SmartDashboard.putNumber("shooter pulses", shooterEncoder.get());
+		if (functionJoystick.getRawAxis(B_BUTTON_ID) > 0) {
 			SmartDashboard.putNumber("hatch", 1);
 			if (!hatchRevolution)
 				moveHatchActuator(0.25);		
@@ -238,6 +241,17 @@ public class Robot extends TimedRobot {
 				LP = 0;
 			}
 		}
+		if (functionJoystick.getRawAxis(LEFT_BUMPER_ID) > 0){
+			SmartDashboard.putNumrer("Shooter Raised", 1);
+			//TODO: check to make sure we aren't past encoder values. if not, set speed on talon. 
+			if ()
+		}
+		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0){
+			SmartDashboard.putNumrer("Shooter Lowered", 1);
+			//TODO: check to make sure we aren't past encoder values. if not, set speed on talon. speed negative ?
+			if ( )
+		}
+		// todo: check to make sure robot does nothing if both buttons are pressed
 
 		setRobotDriveSpeed(LP * speedScale, RP * speedScale);
 	}
@@ -283,6 +297,8 @@ public class Robot extends TimedRobot {
 	public void moveIntake (double speed){
 		intakeTalon.set(speed);
 	}
-
+		
+	public void lowerShooter (double speed){
+		shooterTalon.set(speed * -1);
 	
 }
