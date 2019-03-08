@@ -5,6 +5,7 @@ import java.time.Instant;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
+import edu.wpi.first.wpilibj.Joystick.ButtonType;
 //import edu.wpi.first.wpilibj.DigitalInput;
 //import edu.wpi.first.wpilibj.DoubleSolenoid;
 //import edu.wpi.first.wpilibj.DriverStation;
@@ -46,9 +47,10 @@ public class Robot extends TimedRobot {
 	//TODO: make sure we have a definite number of talons and their ports (0, 1, 2, ...).
 	Talon leftMotor = new Talon(0);
 	Talon rightMotor = new Talon(1);
-	Talon intakeTalon = new Talon(4);
+	Talon intakeActuator = new Talon(4);
 	Talon hatchActuator = new Talon(6);
-	Talon shooterTalon = new Talon (7);
+	Talon intakeTalon = new Talon (7);
+	Talon hatchTalon = new Talon (8);
 	//DoubleSolenoid ballReturn = new DoubleSolenoid(7, 8);
 	
 	//TODO: add digital inputs for limit switches
@@ -58,10 +60,11 @@ public class Robot extends TimedRobot {
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor);
 	DifferentialDrive drive = new DifferentialDrive(m_left, m_right);
 	
-	SpeedControllerGroup scissorLift = new SpeedControllerGroup(intakeTalon);
+	SpeedControllerGroup scissorLift = new SpeedControllerGroup(intakeActuator);
 
 	Encoder hatchEncoder = new Encoder(0, 1, false, EncodingType.k4X);
-	Encoder shooterEncoder = new Encoder(2, 3, false, EncodingType.k4X);
+	Encoder hatchActuatorEncoder = new Encoder(2, 3, false, EncodingType.k4X);
+	Encoder intakeActuatorEncoder = new Encoder (4, 5, false, EncodingType.k4X);
 	SendableChooser<Character> autoChooser = new SendableChooser<Character>();
 	
 	CameraServer camera;
@@ -70,8 +73,11 @@ public class Robot extends TimedRobot {
 	
 	static final double wheelCircumference = 1.43;
 	static final double hatchEncoderPulses = 280;
-	static final double shooterEncoderPulses = 497;
-	static final double shooterAngle = shooterEncoderPulses / 0.125;
+	double hatchEncoderLastValue = 0;
+	static final double hatchActuatorEncoderPulses = 497;
+	double hatchActuatorEncoderLastValue = 0;
+	static final double intakeActuatorEncoderPulses = 497;
+	double intakeActuatorEncoderLastValue = 0;
 	static final double clawDistancePerPulse = 360 / 7*71;
 	static final double speedFactor = -1;
 	static final double driveOffset = .98;
@@ -91,6 +97,8 @@ public class Robot extends TimedRobot {
 	double slowSpeedAdjust = .4;
 	double reverseDirection = -1;
 	boolean hatchRevolution = false;
+	boolean shooterRevolution = false;
+	boolean hatchActuatorRevolution = false;
 
 	private double slowDriveSpeed = .3;
 	private double fullDriveSpeed = 1;
@@ -110,7 +118,7 @@ public class Robot extends TimedRobot {
 		
 		leftMotor.setExpiration(motorExpiration);
 		rightMotor.setExpiration(motorExpiration);
-		intakeTalon.setExpiration(motorExpiration);
+		intakeActuator.setExpiration(motorExpiration);
 
 		SmartDashboard.putString("robot init", "robot init");
 		
@@ -121,7 +129,8 @@ public class Robot extends TimedRobot {
 		hatchEncoder.setSamplesToAverage(7);
 
 		hatchEncoder.reset();
-		shooterEncoder.reset();		
+		hatchActuatorEncoder.reset();
+		intakeActuatorEncoder.reset();		
 	}	
 
 	public void debug() {
@@ -129,10 +138,12 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("Drive Joystick y", driveJoystick.getY());
 		SmartDashboard.putNumber("FunctionJoystick x", functionJoystick.getX());
 		SmartDashboard.putNumber("Function Joystick y", functionJoystick.getY());
-		SmartDashboard.putNumber("Right Encoder", hatchEncoder.getDistance());
-		SmartDashboard.putNumber("Left Encoder", shooterEncoder.getDistance());
-		SmartDashboard.putBoolean("Autonomous Right Distance Triggered", hatchEncoder.getDistance() >= autonomousDistance);
-		SmartDashboard.putBoolean("Autonomous Left Distance Triggered", shooterEncoder.getDistance() >= autonomousDistance);
+		SmartDashboard.putNumber("Hatch Encoder", hatchEncoder.getDistance());
+		SmartDashboard.putNumber("Intake Actuator Encoder", intakeActuatorEncoder.getDistance());
+		SmartDashboard.putNumber("Hatch Actuator Encoder", hatchActuatorEncoder.getDistance());
+		//TODO: Check for drive wheel encoders
+		//SmartDashboard.putBoolean("Autonomous Right Distance Triggered", hatchEncoder.getDistance() >= autonomousDistance);
+		//SmartDashboard.putBoolean("Autonomous Left Distance Triggered", intakeActuatorEncoder.getDistance() >= autonomousDistance);
 	}
 	
 	public void disabledPeriodic() {}	
@@ -162,7 +173,7 @@ public class Robot extends TimedRobot {
 
 		SmartDashboard.putString("Autonomous", "Teleop");
 		//hatchEncoder.reset();
-		//shooterEncoder.reset();
+		//intakeActuatorEncoder.reset();
 		double LP = driveJoystick.getRawAxis(LEFT_AXIS);
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
 		SmartDashboard.putNumber("Left joystick", LP);
@@ -215,23 +226,41 @@ public class Robot extends TimedRobot {
 		}
 		
 
-		double hatchAngle = functionJoystick.getRawAxis(LEFT_AXIS);
+		if (functionJoystick.getRawAxis(LEFT_AXIS) > 0){
+			SmartDashboard.putNumber("Hatch Raised", 1);
+				moveHatchActuator(0.25);
+			
+		}
+		else if (functionJoystick.getRawAxis(LEFT_AXIS) < 0){
+			SmartDashboard.putNumber("Hatch Lowered", 1);
+				moveHatchActuatorDown(0.25);
+		}	
+		else {
+			moveHatchActuator(0);
+			SmartDashboard.putNumber("Hatch", 0);
+		}
 		
 		SmartDashboard.putNumber("hatch raw", hatchEncoder.getRaw());
 		SmartDashboard.putNumber("hatch pulses", hatchEncoder.get());
 		SmartDashboard.putNumber("hatch distance", hatchEncoder.getDistance());
 		SmartDashboard.putNumber("hatch rate", hatchEncoder.getRate());
 		SmartDashboard.putNumber("hatch position", hatchEncoder.get());
-		SmartDashboard.putNumber("shooter pulses", shooterEncoder.get());
-		if (functionJoystick.getRawAxis(B_BUTTON_ID) > 0) {
+		SmartDashboard.putNumber("intake actuator pulses", intakeActuatorEncoder.get());
+		SmartDashboard.putNumber("hatch actuator pulses", hatchActuatorEncoder.get());
+
+
+		if (functionJoystick.getRawButton(B_BUTTON_ID)) {
 			SmartDashboard.putNumber("hatch", 1);
-			if (!hatchRevolution)
-				moveHatchActuator(0.25);		
+			moveHatch(0.1);		
 		}
 		else {
-			moveHatchActuator(0);
-			hatchRevolution = false; 
+			moveHatch(0);
 			SmartDashboard.putNumber("hatch", 0);
+			if (hatchRevolution){
+				hatchEncoder.reset();
+				hatchEncoderLastValue = Math.abs(hatchEncoder.get());
+				hatchRevolution = false;
+			} 
 		}
 		
 		if (Math.abs(RP) < minimumSpeed) {
@@ -241,29 +270,34 @@ public class Robot extends TimedRobot {
 				LP = 0;
 			}
 		}
-		if (functionJoystick.getRawAxis(LEFT_BUMPER_ID) > 0){
-			SmartDashboard.putNumrer("Shooter Raised", 1);
-			//TODO: check to make sure we aren't past encoder values. if not, set speed on talon. 
-			if ()
+
+		if (functionJoystick.getRawButton(LEFT_BUMPER_ID)){
+			SmartDashboard.putNumber("Shooter", 1);
+			//if (!shooterRevolution)
+				moveIntakeActuator(0.25);	
+			
+		}	
+		else if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0){
+			SmartDashboard.putNumber("Shooter", -1);
+			moveIntakeActuatorDown(0.25);
 		}
-		if (functionJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0){
-			SmartDashboard.putNumrer("Shooter Lowered", 1);
-			//TODO: check to make sure we aren't past encoder values. if not, set speed on talon. speed negative ?
-			if ( )
+		else {
+			moveIntakeActuator(0);
+			SmartDashboard.putNumber("Shooter", 0);
 		}
+	
 		// todo: check to make sure robot does nothing if both buttons are pressed
 
 		setRobotDriveSpeed(LP * speedScale, RP * speedScale);
 	}
 
+
 	/**
 	 * This method sets the speed and applies the limiting speed factor for
 	 * SpeedControllers (motor)
 	 * 
-	 * @param motor
-	 *            the motor for which we are setting the speed.
-	 * @param speed
-	 *            to which we are setting the motor (base speed)
+	 * @param motor the motor for which we are setting the speed.
+	 * @param speed to which we are setting the motor (base speed)
 	 */
 	public void setMotorSpeed(SpeedController motor, double speed) {
 		motor.set(speed * speedFactor);
@@ -283,22 +317,58 @@ public class Robot extends TimedRobot {
 		drive.tankDrive(leftSpeed * speedFactor, rightSpeed * speedFactor);
 	}
 
-	public void moveHatchActuator (double speed) {	
-		if (hatchEncoder.get()<=hatchEncoderPulses) {
+	public void moveHatch (double speed) {	
+		SmartDashboard.putNumber("hatchEncoder", hatchEncoder.get());
+		if (Math.abs(hatchEncoder.get())<= hatchEncoderPulses && Math.abs(hatchEncoder.get()) >= hatchEncoderLastValue) {
+			hatchTalon.set(speed);
+			hatchEncoderLastValue = Math.abs(hatchEncoder.get());
+		}
+		else {
+			hatchTalon.set(0);
+			hatchRevolution = true;
+	
+		}
+	}
+
+	private void moveHatchActuator(double speed) {
+		if (hatchActuatorEncoder.get()<= hatchActuatorEncoderPulses * .25){
+			hatchActuator.set(-speed);
+		}
+		else {
+			hatchActuator.set(0);
+		}
+
+	}
+
+	private void moveHatchActuatorDown (double speed) {
+		if (hatchActuatorEncoder.get()>= 0){
 			hatchActuator.set(speed);
 		}
 		else {
 			hatchActuator.set(0);
-			hatchRevolution = true;
-			hatchEncoder.reset();
+		}
+
+	}
+
+	public void moveIntakeActuator (double speed){
+		if (intakeActuatorEncoder.get()<=intakeActuatorEncoderPulses*.125) {
+			intakeActuator.set(-speed);
+		}
+		else {
+			intakeActuator.set(0);
+		}
+	}
+	public void moveIntakeActuatorDown (double speed){
+		if (intakeActuatorEncoder.get() >= 0) {
+			intakeActuator.set(speed);
+		}
+		else {
+			intakeActuator.set(0);
 		}
 	}
 
 	public void moveIntake (double speed){
 		intakeTalon.set(speed);
 	}
-		
-	public void lowerShooter (double speed){
-		shooterTalon.set(speed * -1);
-	
+
 }
