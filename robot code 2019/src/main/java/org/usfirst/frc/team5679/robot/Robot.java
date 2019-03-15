@@ -355,7 +355,7 @@ public class Robot extends TimedRobot {
 			hatchActuator.set(speed);
 			SmartDashboard.putNumber("hatchActuator Up Speed", -speed);
 		}else if (hatchActuatorEncoder.get() > hatchActuatorEncoderPulses * .25){
-			hatchActuator.set(-speed);
+			hatchActuator.set(-speed * .5);
 			SmartDashboard.putNumber("hatchActuator Up Speed", speed);
 		}
 		else {
@@ -372,7 +372,7 @@ public class Robot extends TimedRobot {
 		}
 		else if (hatchActuatorEncoder.get() < 0
 			&& hatchActuatorEncoder.get() < hatchActuatorEncoderPulses){
-			hatchActuator.set(speed);
+			hatchActuator.set(speed * .5);
 			SmartDashboard.putNumber("hatchActuator Down Speed", -speed);
 		}
 		else {
@@ -386,6 +386,10 @@ public class Robot extends TimedRobot {
 			intakeActuator.set(-speed);
 			SmartDashboard.putNumber("intakeActuator Up Speed", -speed);
 		}
+		else if (intakeActuatorEncoder.get() > intakeActuatorEncoderPulses * .125){
+			intakeActuator.set(speed * .5);
+			SmartDashboard.putNumber("intakeActuator Up Speed", speed);
+		}
 		else {
 			intakeActuator.set(0);
 			SmartDashboard.putNumber("intakeActuator Up Speed", 0);
@@ -397,6 +401,10 @@ public class Robot extends TimedRobot {
 		if (intakeActuatorEncoder.get()>= 0){
 			intakeActuator.set(speed);
 			SmartDashboard.putNumber("intakeActuator Down Speed", speed);
+		}
+		else if (intakeActuatorEncoder.get() < 0){
+			intakeActuator.set(-speed * .5);
+			SmartDashboard.putNumber("intakeActuator Down Speed", -speed);
 		}
 		else {
 			intakeActuator.set(0);
