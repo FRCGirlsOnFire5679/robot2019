@@ -6,6 +6,7 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.Joystick.ButtonType;
+import edu.wpi.first.wpilibj.buttons.POVButton;
 //import edu.wpi.first.wpilibj.DigitalInput;
 //import edu.wpi.first.wpilibj.DoubleSolenoid;
 //import edu.wpi.first.wpilibj.DriverStation;
@@ -100,7 +101,7 @@ public class Robot extends TimedRobot {
 	boolean shooterRevolution = false;
 	boolean hatchActuatorRevolution = false;
 
-	private double slowDriveSpeed = .3;
+	private double slowDriveSpeed = .4;
 	private double fullDriveSpeed = 1;
 
 	static final String[] piAddresses = new String[]{
@@ -146,7 +147,20 @@ public class Robot extends TimedRobot {
 		//SmartDashboard.putBoolean("Autonomous Left Distance Triggered", intakeActuatorEncoder.getDistance() >= autonomousDistance);
 	}
 	
-	public void disabledPeriodic() {}	
+	public void disabledPeriodic() {
+
+		hatchEncoder.reset();
+		hatchActuatorEncoder.reset();
+		intakeActuatorEncoder.reset();		
+
+	}	
+	public void disabledInit() {
+
+		hatchEncoder.reset();
+		hatchActuatorEncoder.reset();
+		intakeActuatorEncoder.reset();		
+		
+	}	
 	/**
 	 * This function is called periodically during operator control
 	 */
@@ -172,10 +186,10 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("videoTimestamp", videoTimestamp.getDouble(0));
 
 		SmartDashboard.putString("Autonomous", "Teleop");
-		//hatchEncoder.reset();
-		//intakeActuatorEncoder.reset();
+	
 		double LP = driveJoystick.getRawAxis(LEFT_AXIS);
 		double RP = driveJoystick.getRawAxis(RIGHT_AXIS);
+		double HatchActuatorControl = functionJoystick.getRawAxis(LEFT_AXIS);
 		SmartDashboard.putNumber("Left joystick", LP);
 		SmartDashboard.putNumber("Right joystick", RP);
 		double speedScale = speedAdjust;
@@ -226,18 +240,22 @@ public class Robot extends TimedRobot {
 		}
 		
 
-		if (functionJoystick.getRawAxis(LEFT_AXIS) > 0){
-			SmartDashboard.putNumber("Hatch Raised", 1);
-				moveHatchActuator(0.25);
+		if (HatchActuatorControl > 0){
+			SmartDashboard.putNumber("Hatch", 1);
+				moveHatchActuator(0.5);
 			
 		}
-		else if (functionJoystick.getRawAxis(LEFT_AXIS) < 0){
-			SmartDashboard.putNumber("Hatch Lowered", 1);
-				moveHatchActuatorDown(0.25);
+		else if (HatchActuatorControl < 0){
+			SmartDashboard.putNumber("Hatch", -1);
+				moveHatchActuatorDown(0.5);
 		}	
 		else {
 			moveHatchActuator(0);
 			SmartDashboard.putNumber("Hatch", 0);
+		}
+
+		if (Math.abs(HatchActuatorControl) < minimumSpeed) {
+			HatchActuatorControl = 0;
 		}
 		
 		SmartDashboard.putNumber("hatch raw", hatchEncoder.getRaw());
