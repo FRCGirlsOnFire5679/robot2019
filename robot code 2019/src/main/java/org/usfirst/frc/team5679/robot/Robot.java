@@ -246,11 +246,11 @@ public class Robot extends TimedRobot {
 		
 		if (HatchActuatorControl > 0){
 			SmartDashboard.putNumber("Hatch", HatchActuatorControl);
-				moveHatchActuator(hatchActuatorSpeed);			
+				moveHatchActuatorDown(hatchActuatorSpeed);			
 		}
 		else if (HatchActuatorControl < 0){
 			SmartDashboard.putNumber("Hatch", HatchActuatorControl);
-				moveHatchActuatorDown(hatchActuatorSpeed);
+				moveHatchActuator(hatchActuatorSpeed);
 		}	
 		else {
 			moveHatchActuator(0);
@@ -352,20 +352,28 @@ public class Robot extends TimedRobot {
 
 	private void moveHatchActuator(double speed) {
 		if (hatchActuatorEncoder.get()<= hatchActuatorEncoderPulses * .25){
-			hatchActuator.set(-speed);
+			hatchActuator.set(speed);
 			SmartDashboard.putNumber("hatchActuator Up Speed", -speed);
+		}else if (hatchActuatorEncoder.get() > hatchActuatorEncoderPulses * .25){
+			hatchActuator.set(-speed);
+			SmartDashboard.putNumber("hatchActuator Up Speed", speed);
 		}
 		else {
 			hatchActuator.set(0);
 			SmartDashboard.putNumber("hatchActuator Up Speed", 0);
 		}
-
 	}
 
 	private void moveHatchActuatorDown (double speed) {
-		if (hatchActuatorEncoder.get()>= 0){
-			hatchActuator.set(speed);
+		if (hatchActuatorEncoder.get()>= 0
+			&& hatchActuatorEncoder.get() < hatchActuatorEncoderPulses){
+			hatchActuator.set(-speed);
 			SmartDashboard.putNumber("hatchActuator Down Speed", speed);
+		}
+		else if (hatchActuatorEncoder.get() < 0
+			&& hatchActuatorEncoder.get() < hatchActuatorEncoderPulses){
+			hatchActuator.set(speed);
+			SmartDashboard.putNumber("hatchActuator Down Speed", -speed);
 		}
 		else {
 			hatchActuator.set(0);
