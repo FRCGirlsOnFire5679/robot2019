@@ -94,6 +94,7 @@ public class Robot extends TimedRobot {
 	static final double autonomousDistance = 5;
 	static final double autonomousMultiplier = .95;
 	static final double retrogradeSpeed = -.2;
+	static final double hatchActuatorSpeed = .5;
 	double speedAdjust = .7;
 	double slowSpeedAdjust = .4;
 	double reverseDirection = -1;
@@ -192,8 +193,12 @@ public class Robot extends TimedRobot {
 		double HatchActuatorControl = functionJoystick.getRawAxis(LEFT_AXIS);
 		SmartDashboard.putNumber("Left joystick", LP);
 		SmartDashboard.putNumber("Right joystick", RP);
+		SmartDashboard.putNumber("Hatch actuator joystick", HatchActuatorControl);
 		double speedScale = speedAdjust;
-
+		
+		if (Math.abs(HatchActuatorControl) < minimumSpeed) {
+			HatchActuatorControl = 0;
+		}
 		
 		if (driveJoystick.getRawAxis(LEFT_TRIGGER_ID) > 0) {
 			speedScale = slowDriveSpeed;
@@ -239,15 +244,13 @@ public class Robot extends TimedRobot {
 			moveIntake(0);
 		}
 		
-
 		if (HatchActuatorControl > 0){
-			SmartDashboard.putNumber("Hatch", 1);
-				moveHatchActuator(0.5);
-			
+			SmartDashboard.putNumber("Hatch", HatchActuatorControl);
+				moveHatchActuator(hatchActuatorSpeed);			
 		}
 		else if (HatchActuatorControl < 0){
-			SmartDashboard.putNumber("Hatch", -1);
-				moveHatchActuatorDown(0.5);
+			SmartDashboard.putNumber("Hatch", HatchActuatorControl);
+				moveHatchActuatorDown(hatchActuatorSpeed);
 		}	
 		else {
 			moveHatchActuator(0);
@@ -343,17 +346,18 @@ public class Robot extends TimedRobot {
 		}
 		else {
 			hatchTalon.set(0);
-			hatchRevolution = true;
-	
+			hatchRevolution = true;	
 		}
 	}
 
 	private void moveHatchActuator(double speed) {
 		if (hatchActuatorEncoder.get()<= hatchActuatorEncoderPulses * .25){
 			hatchActuator.set(-speed);
+			SmartDashboard.putNumber("hatchActuator Up Speed", -speed);
 		}
 		else {
 			hatchActuator.set(0);
+			SmartDashboard.putNumber("hatchActuator Up Speed", 0);
 		}
 
 	}
@@ -361,27 +365,34 @@ public class Robot extends TimedRobot {
 	private void moveHatchActuatorDown (double speed) {
 		if (hatchActuatorEncoder.get()>= 0){
 			hatchActuator.set(speed);
+			SmartDashboard.putNumber("hatchActuator Down Speed", speed);
 		}
 		else {
 			hatchActuator.set(0);
+			SmartDashboard.putNumber("hatchActuator Down Speed", 0);
 		}
-
 	}
 
-	public void moveIntakeActuator (double speed){
-		if (intakeActuatorEncoder.get()<=intakeActuatorEncoderPulses*.125) {
+	private void moveIntakeActuator(double speed) {
+		if (intakeActuatorEncoder.get()<= intakeActuatorEncoderPulses * .125){
 			intakeActuator.set(-speed);
+			SmartDashboard.putNumber("intakeActuator Up Speed", -speed);
 		}
 		else {
 			intakeActuator.set(0);
+			SmartDashboard.putNumber("intakeActuator Up Speed", 0);
 		}
+
 	}
-	public void moveIntakeActuatorDown (double speed){
-		if (intakeActuatorEncoder.get() >= 0) {
+
+	private void moveIntakeActuatorDown (double speed) {
+		if (intakeActuatorEncoder.get()>= 0){
 			intakeActuator.set(speed);
+			SmartDashboard.putNumber("intakeActuator Down Speed", speed);
 		}
 		else {
 			intakeActuator.set(0);
+			SmartDashboard.putNumber("intakeActuator Down Speed", 0);
 		}
 	}
 
