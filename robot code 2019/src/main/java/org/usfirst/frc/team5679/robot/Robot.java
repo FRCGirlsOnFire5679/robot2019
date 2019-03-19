@@ -95,6 +95,10 @@ public class Robot extends TimedRobot {
 	static final double autonomousMultiplier = .95;
 	static final double retrogradeSpeed = -.2;
 	static final double hatchActuatorSpeed = .5;
+	static final double hatchActuatorEncoderThreshold = .25;
+	static final double intakeActuatorEncoderThreshold = .125;
+	static final double hatchActuatorMultiplier = 1.5;
+	static final double hatchSpeed = 0.2;
 	double speedAdjust = .7;
 	double slowSpeedAdjust = .4;
 	double reverseDirection = -1;
@@ -146,6 +150,16 @@ public class Robot extends TimedRobot {
 		//TODO: Check for drive wheel encoders
 		//SmartDashboard.putBoolean("Autonomous Right Distance Triggered", hatchEncoder.getDistance() >= autonomousDistance);
 		//SmartDashboard.putBoolean("Autonomous Left Distance Triggered", intakeActuatorEncoder.getDistance() >= autonomousDistance);
+	}
+
+	@Override
+	public void autonomousInit() {
+		teleopInit();
+	}
+
+	@Override
+	public void autonomousPeriodic() {
+		teleopPeriodic();
 	}
 	
 	public void disabledPeriodic() {
@@ -246,11 +260,11 @@ public class Robot extends TimedRobot {
 		
 		if (HatchActuatorControl > 0){
 			SmartDashboard.putNumber("Hatch", HatchActuatorControl);
-				moveHatchActuatorDown(hatchActuatorSpeed);			
+				moveHatchActuator(hatchActuatorSpeed);			
 		}
 		else if (HatchActuatorControl < 0){
 			SmartDashboard.putNumber("Hatch", HatchActuatorControl);
-				moveHatchActuator(hatchActuatorSpeed);
+				moveHatchActuatorDown(hatchActuatorSpeed);
 		}	
 		else {
 			moveHatchActuator(0);
@@ -272,7 +286,7 @@ public class Robot extends TimedRobot {
 
 		if (functionJoystick.getRawButton(B_BUTTON_ID)) {
 			SmartDashboard.putNumber("hatch", 1);
-			moveHatch(0.1);		
+			moveHatch(hatchSpeed);		
 		}
 		else {
 			moveHatch(0);
@@ -351,50 +365,35 @@ public class Robot extends TimedRobot {
 	}
 
 	private void moveHatchActuator(double speed) {
-		if (hatchActuatorEncoder.get()<= hatchActuatorEncoderPulses * .25){
-			hatchActuator.set(speed);
-			SmartDashboard.putNumber("hatchActuator Up Speed", -speed);
-		}else if (hatchActuatorEncoder.get() > hatchActuatorEncoderPulses * .25){
-			hatchActuator.set(-speed * .5);
+		//if (hatchActuatorEncoder.get()<= hatchActuatorEncoderPulses * hatchActuatorEncoderThreshold){
+			hatchActuator.set(speed * hatchActuatorMultiplier);
 			SmartDashboard.putNumber("hatchActuator Up Speed", speed);
-		}
-		else {
-			hatchActuator.set(0);
-			SmartDashboard.putNumber("hatchActuator Up Speed", 0);
-		}
+		//}else {
+		//	hatchActuator.set(-speed * halfSpeed);
+		//	SmartDashboard.putNumber("hatchActuator Up Speed", -speed * halfSpeed);
+		//}
 	}
 
 	private void moveHatchActuatorDown (double speed) {
-		if (hatchActuatorEncoder.get()>= 0
-			&& hatchActuatorEncoder.get() < hatchActuatorEncoderPulses){
+		//if (hatchActuatorEncoder.get()>= 0){
 			hatchActuator.set(-speed);
-			SmartDashboard.putNumber("hatchActuator Down Speed", speed);
-		}
-		else if (hatchActuatorEncoder.get() < 0
-			&& hatchActuatorEncoder.get() < hatchActuatorEncoderPulses){
-			hatchActuator.set(speed * .5);
 			SmartDashboard.putNumber("hatchActuator Down Speed", -speed);
-		}
-		else {
-			hatchActuator.set(0);
-			SmartDashboard.putNumber("hatchActuator Down Speed", 0);
-		}
+		//}
+		//else {
+		//	hatchActuator.set(speed * halfSpeed);
+		//	SmartDashboard.putNumber("hatchActuator Down Speed", speed * halfSpeed);
+		//}
 	}
 
 	private void moveIntakeActuator(double speed) {
-		if (intakeActuatorEncoder.get()<= intakeActuatorEncoderPulses * .125){
+		if (intakeActuatorEncoder.get()<= intakeActuatorEncoderPulses * intakeActuatorEncoderThreshold){
 			intakeActuator.set(-speed);
 			SmartDashboard.putNumber("intakeActuator Up Speed", -speed);
 		}
-		else if (intakeActuatorEncoder.get() > intakeActuatorEncoderPulses * .125){
-			intakeActuator.set(speed * .5);
-			SmartDashboard.putNumber("intakeActuator Up Speed", speed);
-		}
 		else {
-			intakeActuator.set(0);
-			SmartDashboard.putNumber("intakeActuator Up Speed", 0);
+			intakeActuator.set(speed * halfSpeed);
+			SmartDashboard.putNumber("intakeActuator Up Speed", speed * halfSpeed);
 		}
-
 	}
 
 	private void moveIntakeActuatorDown (double speed) {
@@ -402,13 +401,9 @@ public class Robot extends TimedRobot {
 			intakeActuator.set(speed);
 			SmartDashboard.putNumber("intakeActuator Down Speed", speed);
 		}
-		else if (intakeActuatorEncoder.get() < 0){
-			intakeActuator.set(-speed * .5);
-			SmartDashboard.putNumber("intakeActuator Down Speed", -speed);
-		}
 		else {
-			intakeActuator.set(0);
-			SmartDashboard.putNumber("intakeActuator Down Speed", 0);
+			intakeActuator.set(-speed * halfSpeed);
+			SmartDashboard.putNumber("intakeActuator Down Speed", -speed * halfSpeed);
 		}
 	}
 
